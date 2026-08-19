@@ -1,0 +1,41 @@
+name: Monitor THE FIZZ Utrecht
+
+on:
+  schedule:
+    # Ogni 10 minuti. GitHub non garantisce precisione al minuto sul piano
+    # gratuito: nei momenti di alto traffico può slittare di qualche minuto.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}   # ti permette anche di lanciarlo manualmente dalla tab "Actions"
+
+permissions:
+  contents: write   # serve per poter salvare status.json nel repo
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run monitor script
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: python3 monitor_fizz_utrecht1.py
+
+      - name: Commit updated status.json
+        run: |
+          git config user.name "fizz-monitor-bot"
+          git config user.email "actions@github.com"
+          git add status.json
+          git diff --staged --quiet || git commit -m "Aggiorna stato disponibilita"
+          git push
